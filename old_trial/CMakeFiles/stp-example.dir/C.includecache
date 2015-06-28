@@ -1,0 +1,18 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/saksham/work/freescale/validation/modelling/ASFT/stm_python/example.c
+stp/c_interface.h
+/home/saksham/work/freescale/validation/modelling/ASFT/stm_python/stp/c_interface.h
+assert.h
+-
+
+/usr/local/include/stp/c_interface.h
+stdio.h
+-
+

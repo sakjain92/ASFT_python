@@ -1,0 +1,1 @@
+/usr/bin/cc      CMakeFiles/stp-example.dir/example.c.o  -o stp-example -rdynamic /usr/local/lib/libstp.so.2.0.99 -lboost_program_options /usr/local/lib/libminisat.so -Wl,-rpath,/usr/local/lib 

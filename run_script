@@ -1,0 +1,9 @@
+rm -rf output_bin/test/*
+rm -rf output_bin/report/*
+
+echo "Starting Test"
+python execution_main.py
+echo "Test Ended"
+#echo "Test Count is :  `ls -l output_bin/test/ |wc -l` "
+echo "Tests are:"
+ls output_bin/test/

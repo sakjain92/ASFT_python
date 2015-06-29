@@ -66,12 +66,14 @@ class FLOW:
     instr=1
     constraint=2
     stmt=3
+    new=4
     def __init__(self,element,typ):
         self.element=element
         self.typ=typ
         self.instr=1
         self.constraint=2
         self.stmt=3
+        self.new=4
 
 def add_stmt_to_path(path,statement):
     global solver
@@ -83,14 +85,19 @@ def add_stmt_to_path(path,statement):
     current_data=solver.bitvec(data_name,32)
     path.data_list.insert(0,current_data)
 
+    # Add 'new' in the beginnin - Marks beginning
+    flow=FLOW(None,FLOW.new)
+    path.flow_list.insert(0,flow)
+    
     # Add instruction - Added in the starting always
     instr=INSTRUCTION(statement.reg,current_data)
     path.instr_executed.insert(0,instr)
     path.instr_count=path.instr_count+1
     flow=FLOW(instr,FLOW.instr)
-    path.flow_list.insert(0,flow)    
-    path.flow_list_stmt_index=1
+    path.flow_list.insert(1,flow)    
+    path.flow_list_stmt_index=2
     path.flow_list_constraint_index=1
+    path.flow_list_instr_index=2
     
     # Add statement
     flow=FLOW(statement,FLOW.stmt)
@@ -106,6 +113,7 @@ def add_constraint_to_path(path,constraint):
     path.flow_list.insert(path.flow_list_constraint_index,flow)    
     path.flow_list_constraint_index=path.flow_list_constraint_index+1
     path.flow_list_stmt_index=path.flow_list_stmt_index+1
+    path.flow_list_instr_index=path.flow_list_instr_index+1
     
     return check_path_possible(path,None)
 
@@ -118,18 +126,19 @@ def check_path_possible(path,do_model):
     data_index=0
     current_data=None
     for flow in path.flow_list:
-        if(flow.typ==FLOW.instr):
+        if(flow.typ==FLOW.new):
             if( do_model != None ):
                 if( data_index>0 ):
                     path.data_example.insert(data_index-1,solver.model()[current_data.name])
             solver.pop()
             solver.push()
             current_data=path.data_list[data_index]
-        
+            data_index=data_index+1
+ 
+        elif(flow.typ==FLOW.instr):
             reg=flow.element.reg
             write_reg_with_mask(reg,current_data)
-
-            data_index=data_index+1
+           
         elif(flow.typ==FLOW.constraint):
             solver.add( (flow.element.constraint)(current_data) )
             if( solver.check() != True ): 
@@ -186,14 +195,16 @@ def create_out_test_txt(path,out_test_path_dir,TESTCOUNT):
     stm_main.init_reg_por()
     data_index=0
     for flow in path.flow_list:
-        if(flow.typ==FLOW.instr):
+        if(flow.typ==FLOW.new):
             # Output all Regs info after previous instruction execution complete
             out_all_regs(data_index,out_test_fp)
             current_data=path.data_example[data_index]
             current_data_stp=solver.bitvecval(32,current_data)
+            data_index=data_index+1
+
+        elif(flow.typ==FLOW.instr):
             reg=flow.element.reg
             write_reg_with_mask(reg,current_data_stp)
-            data_index=data_index+1
 
         elif(flow.typ==FLOW.constraint):
             pass

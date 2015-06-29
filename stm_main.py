@@ -106,6 +106,71 @@ def debug_off_constraint_1(data):
     #If LSB of data is 0
     return ((data.and_(0x1)) == 0x0)
 
+# Writing on ccr statement - Leads to interrupt
+#TODO: Can create another statement in which interrupt happens when counter value is not zero 
+def stm_channel0_ccr_pos_statment(data):
+    set_interrupt(0)
+def stm_channel1_ccr_pos_statment(data):
+    set_interrupt(1)
+def stm_channel2_ccr_pos_statment(data):
+    set_interrupt(2)
+def stm_channel3_ccr_pos_statment(data):
+    set_interrupt(3)
+
+def stm_channelx_ccr_pos_constraint1(channel_no,data):
+    previous_channel_en=get_bit_val(STM.CHANNEL[channel_no].CCR.val,STM_CHANNEL_EN_BIT,1)
+    previous_channel_is_disabled =  ( previous_channel_en.eq(0x0) )
+    return previous_channel_is_disabled
+def stm_channelx_ccr_neg_constraint1(channel_no,data):
+    previous_channel_en=get_bit_val(STM.CHANNEL[channel_no].CCR.val,STM_CHANNEL_EN_BIT,1)
+    previous_channel_is_enabled =  ( previous_channel_en.eq(0x1) )
+    return previous_channel_is_enabled
+
+def stm_channelx_ccr_pos_constraint2(channel_no,data):
+    current_channel_en=get_bit_val(data,STM_CHANNEL_EN_BIT,1);
+    current_channel_is_enabled = ( current_channel_en.eq(0x1) )
+    return current_channel_is_enabled
+def stm_channelx_ccr_neg_constraint2(channel_no,data):
+    current_channel_en=get_bit_val(data,STM_CHANNEL_EN_BIT,1);
+    current_channel_is_disabled = ( current_channel_en.eq(0x0) )
+    return current_channel_is_disabled
+
+def stm_channelx_ccr_pos_constraint3(channel_no,data):
+    cmp_val=STM.CHANNEL[channel_no].CMP.val
+    timer_val=STM.CNT.val
+    timer_val_equal = (timer_val.eq(cmp_val))
+    return timer_val_equal
+def stm_channelx_ccr_neg_constraint3(channel_no,data):
+    cmp_val=STM.CHANNEL[channel_no].CMP.val
+    timer_val=STM.CNT.val
+    timer_val_nequal = (timer_val.ne(cmp_val))
+    return timer_val_nequal
+ 
+
+# TODO: Addd statements for all channels: Currently only supporting 1 channel
+def stm_channel0_ccr_pos_constraint1(data):
+    return (stm_channelx_ccr_pos_constraint1(0,data))
+def stm_channel0_ccr_pos_constraint2(data):
+    return (stm_channelx_ccr_pos_constraint2(0,data))
+def stm_channel0_ccr_pos_constraint3(data):
+    return (stm_channelx_ccr_pos_constraint3(0,data))
+def stm_channel0_ccr_neg_constraint1(data):
+    return (stm_channelx_ccr_neg_constraint1(0,data))
+def stm_channel0_ccr_neg_constraint2(data):
+    return (stm_channelx_ccr_neg_constraint2(0,data))
+def stm_channel0_ccr_neg_constraint3(data):
+    return (stm_channelx_ccr_neg_constraint3(0,data))
+
+
+
+
+#No effect. Only reg change.
+def do_nothing_statement(data):
+    pass
+
+#TODO: Neg statements can be due to multiple constraints. Multiple statements for them
+stm_channelx_ccr_neg_statement = stm_cr_statement = do_nothing_statement;
+
 
 STATEMENT_LIST=[]
 def get_statement_list():
@@ -123,6 +188,48 @@ def init_stmt_constraints():
     debug_off_CONSTRAINT_1= execution_header.CONSTRAINT("DEBUG_OFF_1",debug_off_constraint_1,[])
     debug_off_STATEMENT= execution_header.STATEMENT("DEBUG_OFF",debug_off_statement,[debug_off_CONSTRAINT_1],[STM_STATE.DEBUG_MODE],PSEUDO_REG.DEBUG)
     STATEMENT_LIST.append(debug_off_STATEMENT)
+    
+    stm_cr_STATEMENT= execution_header.STATEMENT("STM_CR",stm_cr_statement,[],[STM.CR],STM.CR)
+    STATEMENT_LIST.append(stm_cr_STATEMENT)
+
+    # STM CCR Interrupt
+    stm_channel0_ccr_pos_CONSTRAINT1= execution_header.CONSTRAINT("STM_CHANNEL0_CCR_pos1",stm_channel0_ccr_pos_constraint1,[STM.CHANNEL[0].CCR.val])
+    stm_channel0_ccr_pos_CONSTRAINT2= execution_header.CONSTRAINT("STM_CHANNEL0_CCR_pos2",stm_channel0_ccr_pos_constraint2,[])
+    stm_channel0_ccr_pos_CONSTRAINT3= execution_header.CONSTRAINT("STM_CHANNEL0_CCR_pos3",stm_channel0_ccr_pos_constraint3,[STM.CNT,STM.CHANNEL[0].CMP])
+
+    stm_channel0_ccr_pos_STATEMENT = execution_header.STATEMENT("STM_CHANNEL0_CCR_pos",stm_channel0_ccr_pos_statment,[stm_channel0_ccr_pos_CONSTRAINT1,stm_channel0_ccr_pos_CONSTRAINT2,stm_channel0_ccr_pos_CONSTRAINT3],[STM.CHANNEL[0].CCR,PSEUDO_REG.INTC,STM.CHANNEL[0].CIF.val],STM.CHANNEL[0].CCR)
+    STATEMENT_LIST.append(stm_channel0_ccr_pos_STATEMENT)
+    
+    # STM CCR Neg
+    stm_channel0_ccr_neg_CONSTRAINT1= execution_header.CONSTRAINT("STM_CHANNEL0_CCR_neg1",stm_channel0_ccr_neg_constraint1,[STM.CHANNEL[0].CCR.val])
+    stm_channel0_ccr_neg_CONSTRAINT2= execution_header.CONSTRAINT("STM_CHANNEL0_CCR_neg2",stm_channel0_ccr_neg_constraint2,[])
+    stm_channel0_ccr_neg_CONSTRAINT3= execution_header.CONSTRAINT("STM_CHANNEL0_CCR_neg3",stm_channel0_ccr_neg_constraint3,[STM.CNT,STM.CHANNEL[0].CMP])
+
+    stm_channel0_ccr_neg_STATEMENT1 = execution_header.STATEMENT("STM_CHANNEL0_CCR_neg1",stm_channelx_ccr_neg_statement,[stm_channel0_ccr_neg_CONSTRAINT1,stm_channel0_ccr_pos_CONSTRAINT2,stm_channel0_ccr_pos_CONSTRAINT3],[STM.CHANNEL[0].CCR],STM.CHANNEL[0].CCR)
+    STATEMENT_LIST.append(stm_channel0_ccr_neg_STATEMENT1)
+
+    stm_channel0_ccr_neg_STATEMENT2 = execution_header.STATEMENT("STM_CHANNEL0_CCR_neg2",stm_channelx_ccr_neg_statement,[stm_channel0_ccr_pos_CONSTRAINT1,stm_channel0_ccr_neg_CONSTRAINT2,stm_channel0_ccr_pos_CONSTRAINT3],[STM.CHANNEL[0].CCR],STM.CHANNEL[0].CCR)
+    STATEMENT_LIST.append(stm_channel0_ccr_neg_STATEMENT2)
+
+    stm_channel0_ccr_neg_STATEMENT3 = execution_header.STATEMENT("STM_CHANNEL0_CCR_neg3",stm_channelx_ccr_neg_statement,[stm_channel0_ccr_pos_CONSTRAINT1,stm_channel0_ccr_pos_CONSTRAINT2,stm_channel0_ccr_neg_CONSTRAINT3],[STM.CHANNEL[0].CCR],STM.CHANNEL[0].CCR)
+    STATEMENT_LIST.append(stm_channel0_ccr_neg_STATEMENT3)
+
+    stm_channel0_ccr_neg_STATEMENT4 = execution_header.STATEMENT("STM_CHANNEL0_CCR_neg4",stm_channelx_ccr_neg_statement,[stm_channel0_ccr_neg_CONSTRAINT1,stm_channel0_ccr_neg_CONSTRAINT2,stm_channel0_ccr_pos_CONSTRAINT3],[STM.CHANNEL[0].CCR],STM.CHANNEL[0].CCR)
+    STATEMENT_LIST.append(stm_channel0_ccr_neg_STATEMENT4)
+
+    stm_channel0_ccr_neg_STATEMENT5 = execution_header.STATEMENT("STM_CHANNEL0_CCR_neg5",stm_channelx_ccr_neg_statement,[stm_channel0_ccr_neg_CONSTRAINT1,stm_channel0_ccr_pos_CONSTRAINT2,stm_channel0_ccr_neg_CONSTRAINT3],[STM.CHANNEL[0].CCR],STM.CHANNEL[0].CCR)
+    STATEMENT_LIST.append(stm_channel0_ccr_neg_STATEMENT5)
+
+    stm_channel0_ccr_neg_STATEMENT6 = execution_header.STATEMENT("STM_CHANNEL0_CCR_neg6",stm_channelx_ccr_neg_statement,[stm_channel0_ccr_pos_CONSTRAINT1,stm_channel0_ccr_neg_CONSTRAINT2,stm_channel0_ccr_neg_CONSTRAINT3],[STM.CHANNEL[0].CCR],STM.CHANNEL[0].CCR)
+    STATEMENT_LIST.append(stm_channel0_ccr_neg_STATEMENT6)
+
+    stm_channel0_ccr_neg_STATEMENT7 = execution_header.STATEMENT("STM_CHANNEL0_CCR_neg7",stm_channelx_ccr_neg_statement,[stm_channel0_ccr_neg_CONSTRAINT1,stm_channel0_ccr_neg_CONSTRAINT2,stm_channel0_ccr_neg_CONSTRAINT3],[STM.CHANNEL[0].CCR],STM.CHANNEL[0].CCR)
+    STATEMENT_LIST.append(stm_channel0_ccr_neg_STATEMENT7)
+
+    stm_channel0_ccr_neg_STATEMENT1 = execution_header.STATEMENT("STM_CHANNEL0_CCR_neg1",stm_channelx_ccr_neg_statement,[stm_channel0_ccr_neg_CONSTRAINT1,stm_channel0_ccr_pos_CONSTRAINT2,stm_channel0_ccr_pos_CONSTRAINT3],[STM.CHANNEL[0].CCR],STM.CHANNEL[0].CCR)
+    STATEMENT_LIST.append(stm_channel0_ccr_neg_STATEMENT1)
+
+
 
 #Testing
 if __name__ == "__main__":
